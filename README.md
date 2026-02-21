@@ -13,12 +13,14 @@ A local, single-user Markdown-first revision web app with fixed top-level sectio
 - Paste Markdown or upload a `.md` file (content read in browser only).
 - GitHub-flavored Markdown rendering with code blocks, tables, and lists.
 - Live preview while editing.
-- Persistent local-disk storage in `data/revision-kb.json` via a local HTTP API.
+- Local persistence via `localStorage`.
 
 ## Run
 
+Open `index.html` directly in a browser, or serve locally:
+
 ```bash
-npm start
+python3 -m http.server 4173
 ```
 
 Then visit `http://localhost:4173`.

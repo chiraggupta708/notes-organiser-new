@@ -1,3 +1,4 @@
+const STORAGE_KEY = "revision-kb-data-v1";
 const FIXED_SECTIONS = [
   { id: "coding", name: "Coding" },
   { id: "hld", name: "HLD" },
@@ -7,7 +8,7 @@ const FIXED_SECTIONS = [
 marked.setOptions({ gfm: true, breaks: true });
 
 const state = {
-  data: { subSections: [] },
+  data: loadData(),
   selectedSubSectionId: null,
   editor: {
     mode: null,
@@ -32,27 +33,28 @@ const markdownInput = document.getElementById("markdownInput");
 const previewMarkdown = document.getElementById("previewMarkdown");
 const cancelBtn = document.getElementById("cancelBtn");
 const sectionTemplate = document.getElementById("sectionTemplate");
-const formMessage = document.getElementById("formMessage");
 
-init();
+render();
 
-async function init() {
-  await loadData();
-  render();
+function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    return { subSections: [] };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.subSections)) {
+      return { subSections: [] };
+    }
+    return parsed;
+  } catch {
+    return { subSections: [] };
+  }
 }
 
-async function loadData() {
-  try {
-    const response = await fetch("/api/subsections");
-    if (!response.ok) {
-      throw new Error("Unable to load data.");
-    }
-
-    const subSections = await response.json();
-    state.data = { subSections: Array.isArray(subSections) ? subSections : [] };
-  } catch {
-    setFormMessage("Unable to connect to storage API. Start server with npm start.");
-  }
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
 }
 
 function subSectionsBySection(sectionId) {
@@ -63,11 +65,6 @@ function subSectionsBySection(sectionId) {
 
 function findSubSection(id) {
   return state.data.subSections.find((sub) => sub.id === id) ?? null;
-}
-
-function setFormMessage(message = "", isSuccess = false) {
-  formMessage.textContent = message;
-  formMessage.classList.toggle("success", Boolean(message) && isSuccess);
 }
 
 function render() {
@@ -160,7 +157,6 @@ function openCreateEditor(sectionId) {
   titleInput.value = "";
   markdownInput.value = "";
   fileInput.value = "";
-  setFormMessage();
   refreshPreview();
   renderPanels();
   titleInput.focus();
@@ -180,7 +176,6 @@ function openEditEditor(subSectionId) {
   titleInput.value = sub.title;
   markdownInput.value = sub.markdown;
   fileInput.value = "";
-  setFormMessage();
   refreshPreview();
   renderPanels();
   titleInput.focus();
@@ -188,7 +183,6 @@ function openEditEditor(subSectionId) {
 
 function closeEditor() {
   state.editor = { mode: null, sectionId: null, subSectionId: null };
-  setFormMessage();
   renderPanels();
 }
 
@@ -206,18 +200,7 @@ cancelBtn.addEventListener("click", () => {
   closeEditor();
 });
 
-markdownInput.addEventListener("input", () => {
-  if (formMessage.textContent) {
-    setFormMessage();
-  }
-  refreshPreview();
-});
-
-titleInput.addEventListener("input", () => {
-  if (formMessage.textContent) {
-    setFormMessage();
-  }
-});
+markdownInput.addEventListener("input", refreshPreview);
 
 fileInput.addEventListener("change", async (event) => {
   const [file] = event.target.files;
@@ -225,69 +208,42 @@ fileInput.addEventListener("change", async (event) => {
 
   const text = await file.text();
   markdownInput.value = text;
-  setFormMessage();
   refreshPreview();
 });
 
-editorForm.addEventListener("submit", async (event) => {
+editorForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const title = titleInput.value.trim();
   const markdown = markdownInput.value;
 
-  if (!title) {
-    setFormMessage("Title is required.");
-    titleInput.focus();
+  if (!title || !markdown.trim()) {
     return;
   }
 
-  if (!markdown.trim()) {
-    setFormMessage("Markdown content is required.");
-    markdownInput.focus();
-    return;
+  const now = new Date().toISOString();
+
+  if (state.editor.mode === "create") {
+    const subSection = {
+      id: crypto.randomUUID(),
+      sectionId: state.editor.sectionId,
+      title,
+      markdown,
+      createdAt: now,
+      updatedAt: now
+    };
+    state.data.subSections.push(subSection);
+    state.selectedSubSectionId = subSection.id;
+  } else if (state.editor.mode === "edit") {
+    const sub = findSubSection(state.editor.subSectionId);
+    if (!sub) return;
+    sub.title = title;
+    sub.markdown = markdown;
+    sub.updatedAt = now;
+    state.selectedSubSectionId = sub.id;
   }
 
-  try {
-    if (state.editor.mode === "create") {
-      const response = await fetch("/api/subsections", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sectionId: state.editor.sectionId,
-          title,
-          markdown
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save new sub-section.");
-      }
-
-      const created = await response.json();
-      state.data.subSections.push(created);
-      state.selectedSubSectionId = created.id;
-    } else if (state.editor.mode === "edit") {
-      const response = await fetch(`/api/subsections/${state.editor.subSectionId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, markdown })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update sub-section.");
-      }
-
-      const updated = await response.json();
-      const idx = state.data.subSections.findIndex((sub) => sub.id === updated.id);
-      if (idx !== -1) {
-        state.data.subSections[idx] = updated;
-      }
-      state.selectedSubSectionId = updated.id;
-    }
-
-    closeEditor();
-    render();
-  } catch (error) {
-    setFormMessage(error.message || "Save failed.");
-  }
+  saveData();
+  closeEditor();
+  render();
 });

@@ -159,17 +159,6 @@ textarea {
   min-height: 240px;
 }
 
-.form-message {
-  min-height: 1.25rem;
-  margin: 0;
-  font-size: 0.9rem;
-  color: #b91c1c;
-}
-
-.form-message.success {
-  color: #166534;
-}
-
 .editor-actions {
   display: flex;
   gap: 0.5rem;
