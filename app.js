@@ -33,7 +33,6 @@ const markdownInput = document.getElementById("markdownInput");
 const previewMarkdown = document.getElementById("previewMarkdown");
 const cancelBtn = document.getElementById("cancelBtn");
 const sectionTemplate = document.getElementById("sectionTemplate");
-const formMessage = document.getElementById("formMessage");
 
 render();
 
@@ -66,19 +65,6 @@ function subSectionsBySection(sectionId) {
 
 function findSubSection(id) {
   return state.data.subSections.find((sub) => sub.id === id) ?? null;
-}
-
-function createId() {
-  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return `sub-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function setFormMessage(message = "", isSuccess = false) {
-  formMessage.textContent = message;
-  formMessage.classList.toggle("success", Boolean(message) && isSuccess);
 }
 
 function render() {
@@ -171,7 +157,6 @@ function openCreateEditor(sectionId) {
   titleInput.value = "";
   markdownInput.value = "";
   fileInput.value = "";
-  setFormMessage();
   refreshPreview();
   renderPanels();
   titleInput.focus();
@@ -191,7 +176,6 @@ function openEditEditor(subSectionId) {
   titleInput.value = sub.title;
   markdownInput.value = sub.markdown;
   fileInput.value = "";
-  setFormMessage();
   refreshPreview();
   renderPanels();
   titleInput.focus();
@@ -199,7 +183,6 @@ function openEditEditor(subSectionId) {
 
 function closeEditor() {
   state.editor = { mode: null, sectionId: null, subSectionId: null };
-  setFormMessage();
   renderPanels();
 }
 
@@ -217,18 +200,7 @@ cancelBtn.addEventListener("click", () => {
   closeEditor();
 });
 
-markdownInput.addEventListener("input", () => {
-  if (formMessage.textContent) {
-    setFormMessage();
-  }
-  refreshPreview();
-});
-
-titleInput.addEventListener("input", () => {
-  if (formMessage.textContent) {
-    setFormMessage();
-  }
-});
+markdownInput.addEventListener("input", refreshPreview);
 
 fileInput.addEventListener("change", async (event) => {
   const [file] = event.target.files;
@@ -236,7 +208,6 @@ fileInput.addEventListener("change", async (event) => {
 
   const text = await file.text();
   markdownInput.value = text;
-  setFormMessage();
   refreshPreview();
 });
 
@@ -246,15 +217,7 @@ editorForm.addEventListener("submit", (event) => {
   const title = titleInput.value.trim();
   const markdown = markdownInput.value;
 
-  if (!title) {
-    setFormMessage("Title is required.");
-    titleInput.focus();
-    return;
-  }
-
-  if (!markdown.trim()) {
-    setFormMessage("Markdown content is required.");
-    markdownInput.focus();
+  if (!title || !markdown.trim()) {
     return;
   }
 
@@ -262,7 +225,7 @@ editorForm.addEventListener("submit", (event) => {
 
   if (state.editor.mode === "create") {
     const subSection = {
-      id: createId(),
+      id: crypto.randomUUID(),
       sectionId: state.editor.sectionId,
       title,
       markdown,
@@ -273,10 +236,7 @@ editorForm.addEventListener("submit", (event) => {
     state.selectedSubSectionId = subSection.id;
   } else if (state.editor.mode === "edit") {
     const sub = findSubSection(state.editor.subSectionId);
-    if (!sub) {
-      setFormMessage("Unable to find the sub-section to update.");
-      return;
-    }
+    if (!sub) return;
     sub.title = title;
     sub.markdown = markdown;
     sub.updatedAt = now;
