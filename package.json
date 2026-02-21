@@ -1,0 +1,10 @@
+{
+  "name": "personal-revision-kb",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal Revision Knowledge Base",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
