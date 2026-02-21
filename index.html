@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personal Revision Knowledge Base</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Sections and notes navigation">
+        <div class="sidebar-header">
+          <h1>Revision KB</h1>
+          <p>Coding · HLD · LLD</p>
+        </div>
+        <nav id="sectionTree" class="section-tree"></nav>
+      </aside>
+
+      <main class="content" aria-live="polite">
+        <section id="emptyState" class="empty-state">
+          <h2>Select or create a sub-section</h2>
+          <p>Choose a section from the sidebar and create your first revision note.</p>
+        </section>
+
+        <section id="viewer" class="viewer hidden">
+          <div class="viewer-header">
+            <div>
+              <p id="currentPath" class="eyebrow"></p>
+              <h2 id="currentTitle"></h2>
+            </div>
+            <button id="editBtn" type="button">Edit</button>
+          </div>
+          <article id="renderedMarkdown" class="markdown-body"></article>
+        </section>
+
+        <section id="editor" class="editor hidden">
+          <div class="editor-header">
+            <h2 id="editorHeading">Create Sub-section</h2>
+          </div>
+          <form id="editorForm">
+            <label for="titleInput">Title</label>
+            <input id="titleInput" name="title" required maxlength="120" />
+
+            <label for="fileInput">Upload .md file (optional)</label>
+            <input id="fileInput" type="file" accept=".md,text/markdown" />
+
+            <label for="markdownInput">Markdown</label>
+            <textarea id="markdownInput" name="markdown" rows="14" required></textarea>
+
+            <p id="formMessage" class="form-message" role="status" aria-live="polite"></p>
+            <div class="editor-actions">
+              <button id="saveBtn" type="submit">Save</button>
+              <button id="cancelBtn" type="button" class="secondary">Cancel</button>
+            </div>
+          </form>
+
+          <section class="preview-block">
+            <h3>Live preview</h3>
+            <article id="previewMarkdown" class="markdown-body"></article>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <template id="sectionTemplate">
+      <section class="section-block">
+        <header class="section-header">
+          <h3></h3>
+          <button type="button" class="small">+ Add</button>
+        </header>
+        <ul class="subsection-list"></ul>
+      </section>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
